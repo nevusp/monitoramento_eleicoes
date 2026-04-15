@@ -3,3 +3,4 @@ pandas==2.2.2
 plotly==5.22.0
 wordcloud==1.9.3
 numpy==1.26.4
+gunicorn

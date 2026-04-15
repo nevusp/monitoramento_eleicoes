@@ -11,6 +11,7 @@ df = carregar_dados_gerais()
 posts = carregar_posts()
 
 app = Dash(__name__)
+server = app.server 
 
 redes = df["Social network"].dropna().unique()
 
@@ -102,4 +103,4 @@ comparativo.register_callbacks(app, df)
 # ▶️ Run
 # =========================
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False)

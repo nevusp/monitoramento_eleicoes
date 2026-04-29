@@ -14,11 +14,13 @@ CARD_STYLE = {
 ROW_STYLE = {
     "display": "flex",
     "gap": "20px",
-    "marginBottom": "20px"
+    "marginBottom": "20px",
+    "flexWrap": "wrap"
 }
 
 COL_STYLE = {
-    "flex": "1"
+    "flex": "1",
+    "minWidth": "450px"
 }
 
 FILTER_STYLE = {
@@ -37,7 +39,6 @@ def layout():
 
         html.H2("🔀 Comparação entre Redes Sociais", style={"marginBottom": "20px"}),
 
-        # 🎛️ Filtro
         html.Div([
             html.Label("Cargo"),
             dcc.Dropdown(
@@ -51,20 +52,22 @@ def layout():
             ),
         ], style=FILTER_STYLE),
 
-        # =========================
-        # 📊 LINHA 1
-        # =========================
+        # Linha 1
         html.Div([
             html.Div(dcc.Graph(id="grafico_perc_seguidores"), style=CARD_STYLE | COL_STYLE),
             html.Div(dcc.Graph(id="grafico_perc_interacoes"), style=CARD_STYLE | COL_STYLE),
         ], style=ROW_STYLE),
 
-        # =========================
-        # 📊 LINHA 2
-        # =========================
+        # Linha 2
         html.Div([
             html.Div(dcc.Graph(id="grafico_engajamento_rede"), style=CARD_STYLE | COL_STYLE),
             html.Div(dcc.Graph(id="grafico_heatmap_rede"), style=CARD_STYLE | COL_STYLE),
+        ], style=ROW_STYLE),
+
+        # Linha 3
+        html.Div([
+            html.Div(dcc.Graph(id="grafico_abs_seguidores_rede"), style=CARD_STYLE | COL_STYLE),
+            html.Div(dcc.Graph(id="grafico_abs_interacoes_rede"), style=CARD_STYLE | COL_STYLE),
         ], style=ROW_STYLE),
 
     ], style={
@@ -84,6 +87,8 @@ def register_callbacks(app, df):
         Output("grafico_perc_interacoes", "figure"),
         Output("grafico_engajamento_rede", "figure"),
         Output("grafico_heatmap_rede", "figure"),
+        Output("grafico_abs_seguidores_rede", "figure"),
+        Output("grafico_abs_interacoes_rede", "figure"),
         Input("filtro_cargo_comp", "value")
     )
     def atualizar_comparativo(cargo):
@@ -96,7 +101,7 @@ def register_callbacks(app, df):
         df_cargo = df_comp.copy()
 
         # =========================
-        # 📊 Totais por candidato
+        # Totais por candidato
         # =========================
         df_total = df_comp.groupby("Profile_padronizado").agg({
             "Seguidores": "sum",
@@ -109,7 +114,7 @@ def register_callbacks(app, df):
         df_comp = df_comp.merge(df_total, on="Profile_padronizado", how="left")
 
         # =========================
-        # 📊 Percentuais
+        # Percentuais
         # =========================
         df_comp["Perc_Seguidores"] = df_comp["Seguidores"] / df_comp["Seguidores_total"]
         df_comp["Perc_Interacoes"] = df_comp["Interacoes"] / df_comp["Interacoes_total"]
@@ -117,19 +122,20 @@ def register_callbacks(app, df):
         df_comp = df_comp.fillna(0)
 
         # =========================
-        # 🎨 Função de estilo
+        # Estilo
         # =========================
         def estilizar(fig):
             fig.update_layout(
                 template="plotly_white",
                 title_x=0.5,
-                margin=dict(l=20, r=20, t=40, b=20),
-                xaxis_tickangle=-45
+                margin=dict(l=20, r=20, t=50, b=20),
+                xaxis_tickangle=-45,
+                legend_title_text="Rede Social"
             )
             return fig
 
         # =========================
-        # 📊 Gráficos
+        # Percentuais
         # =========================
         fig_perc_seguidores = estilizar(px.bar(
             df_comp,
@@ -149,6 +155,9 @@ def register_callbacks(app, df):
             title="Distribuição % de Interações por Rede"
         ))
 
+        # =========================
+        # Engajamento
+        # =========================
         fig_engajamento_rede = estilizar(px.bar(
             df_cargo,
             x="Profile_padronizado",
@@ -158,6 +167,9 @@ def register_callbacks(app, df):
             title="Engajamento por Rede Social"
         ))
 
+        # =========================
+        # Heatmap
+        # =========================
         fig_heatmap_rede = estilizar(px.density_heatmap(
             df_cargo,
             x="Social network",
@@ -165,9 +177,32 @@ def register_callbacks(app, df):
             title="Distribuição de Engajamento por Rede"
         ))
 
+        # =========================
+        # Absolutos
+        # =========================
+        fig_abs_seguidores_rede = estilizar(px.bar(
+            df_comp,
+            x="Profile_padronizado",
+            y="Seguidores",
+            color="Social network",
+            barmode="stack",
+            title="Número Absoluto de Seguidores por Candidato e Rede"
+        ))
+
+        fig_abs_interacoes_rede = estilizar(px.bar(
+            df_comp,
+            x="Profile_padronizado",
+            y="Interacoes",
+            color="Social network",
+            barmode="stack",
+            title="Número Absoluto de Interações por Candidato e Rede"
+        ))
+
         return (
             fig_perc_seguidores,
             fig_perc_interacoes,
             fig_engajamento_rede,
-            fig_heatmap_rede
+            fig_heatmap_rede,
+            fig_abs_seguidores_rede,
+            fig_abs_interacoes_rede
         )
